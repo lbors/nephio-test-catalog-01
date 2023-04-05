@@ -1,0 +1,13 @@
+---
+# Source: onos-classic/charts/atomix/templates/configmap-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: release-name-atomix-config
+  labels:
+    app: release-name-atomix
+    chart: "atomix-0.1.9"
+    release: "release-name"
+    heritage: "Helm"
+data:
+  atomix.conf: "cluster {\n  node: ${atomix.node}\n\n  discovery {\n    type: bootstrap\n    nodes: ${atomix.nodes}\n  }\n}\nmanagementGroup {\n  type: raft\n  name: system\n  partitionSize: 3\n  partitions: 1\n  members: ${atomix.members}\n}\npartitionGroups.raft {\n  type: raft\n  name: raft\n  partitionSize: 3\n  partitions: ${atomix.replicas}\n  members: ${atomix.members}\n}\n"

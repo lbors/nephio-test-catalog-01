@@ -1,0 +1,126 @@
+---
+# Source: onos-classic/charts/atomix/templates/statefulset.yaml
+# This template provides a StatefulSet for Atomix nodes.
+# The StatefulSet is used to ensure that nodes are assigned a persistent identity.
+# The StatefulSet must be used with a headless service to ensure pods can communicate with each other through
+# their persistent identities.
+# The StatefulSet supports upgrades through a simple RollingUpdate strategy.
+# An anti-affinity policy is used to ensure pods are scheduled on distinct hosts when enabled.
+# To configure the pods, an init container is used to populate a properties file on an ephemeral volume. The
+# configuration volume is shared with the primary container for configuration purposes.
+# Additionally, a volume claim template is used for the Raft partition logs.
+# It's recommended that local-storage be used with the StatefulSet.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: release-name-atomix
+  labels:
+    app: release-name-atomix
+    chart: "atomix-0.1.9"
+    release: "release-name"
+    heritage: "Helm"
+spec:
+  serviceName: release-name-atomix-hs
+  selector:
+    matchLabels:
+      app: release-name-atomix
+  replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  podManagementPolicy: Parallel
+  template:
+    metadata:
+      labels:
+        app: release-name-atomix
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - release-name-atomix
+            topologyKey: kubernetes.io/hostname
+      initContainers:
+      - name: configure
+        image: ubuntu:16.04
+        env:
+        - name: ATOMIX_NODES
+          value: "3"
+        command:
+        - sh
+        - -c
+        - "/scripts/create-config.sh --nodes=$ATOMIX_NODES > /config/atomix.properties"
+        volumeMounts:
+        - name: init-scripts
+          mountPath: /scripts
+        - name: system-config
+          mountPath: /config
+      containers:
+      - name: atomix
+        image: "atomix/atomix:3.1.12"
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: JAVA_OPTS
+          value: -Xmx2G
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 0.5
+          limits:
+        ports:
+        - name: client
+          containerPort: 5678
+        - name: server
+          containerPort: 5679
+        args:
+        - --config
+        - /etc/atomix/system/atomix.properties
+        - /etc/atomix/user/atomix.conf
+        - --ignore-resources
+        - --data-dir=/var/lib/atomix/data
+        - --log-level=INFO
+        - --file-log-level=OFF
+        - --console-log-level=INFO
+        readinessProbe:
+          httpGet:
+            path: /v1/status
+            port: 5678
+          initialDelaySeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /v1/status
+            port: 5678
+          initialDelaySeconds: 60
+          timeoutSeconds: 10
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/atomix
+        - name: system-config
+          mountPath: /etc/atomix/system
+        - name: user-config
+          mountPath: /etc/atomix/user
+      volumes:
+      - name: init-scripts
+        configMap:
+          name: release-name-atomix-init-scripts
+          defaultMode: 0744
+      - name: user-config
+        configMap:
+          name: release-name-atomix-config
+      - name: system-config
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      annotations:
+    spec:
+      accessModes:
+      - "ReadWriteOnce"
+      resources:
+        requests:
+          storage: "10Gi"

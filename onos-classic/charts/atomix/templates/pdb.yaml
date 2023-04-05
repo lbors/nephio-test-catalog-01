@@ -1,0 +1,13 @@
+---
+# Source: onos-classic/charts/atomix/templates/pdb.yaml
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: release-name-atomix-pdb
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: release-name-atomix
+      chart: "atomix-0.1.9"
+      release: "release-name"

@@ -1,0 +1,134 @@
+---
+# Source: onos-classic/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: release-name-onos-classic
+  labels:
+    app: "onos-classic"
+    name: release-name-onos-classic
+    chart: "onos-classic-0.1.31"
+    release: "release-name"
+    heritage: "Helm"
+spec:
+  serviceName: release-name-onos-classic-hs
+  selector:
+    matchLabels:
+      app: "onos-classic"
+  replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  podManagementPolicy: Parallel
+  template:
+    metadata:
+      labels:
+        app: "onos-classic"
+        name: release-name-onos-classic
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - onos-classic
+            topologyKey: kubernetes.io/hostname
+      initContainers:
+        - name: onos-classic-init
+          image: tutum/dnsutils:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ATOMIX_SERVICE
+              value: release-name-atomix
+            - name: ATOMIX_REPLICAS
+              value: "3"
+          command:
+            - sh
+            - -c
+            - "/scripts/configure-onos.sh $ATOMIX_SERVICE $ATOMIX_REPLICAS > /config/cluster.json && touch /config/active"
+          volumeMounts:
+            - name: init-scripts
+              mountPath: /scripts
+            - name: config
+              mountPath: /config
+      containers:
+      - name: onos-classic
+        image: "onosproject/onos:2.5.7-rc1"
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 0.5
+          limits:
+        env:
+          - name: JAVA_OPTS
+            value: -Xmx4G -Dlog4j2.formatMsgNoLookups=true
+          - name: ONOS_APPS
+            value: org.onosproject.openflow-base
+        ports:
+          - name: openflow
+            containerPort: 6653
+          - name: ovsdb
+            containerPort: 6640
+          - name: east-west
+            containerPort: 9876
+          - name: cli
+            containerPort: 8101
+          - name: ui
+            containerPort: 8181
+        readinessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - /root/onos/bin/check-onos-status
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          failureThreshold: 10
+          # Workaround for the probes issue - https://github.com/kubernetes/kubernetes/issues/82987
+          # we use in curl a timeout lower than this to avoid the deadline exceed. Also we dont't
+          # allow the script to exit immeditately.
+          timeoutSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - /root/onos/bin/check-onos-status
+          initialDelaySeconds: 300
+          periodSeconds: 15
+          timeoutSeconds: 10
+        volumeMounts:
+          - name: probe-scripts
+            mountPath: /root/onos/bin/check-onos-status
+            subPath: check-onos-status
+          - name: config
+            mountPath: /root/onos/config/cluster.json
+            subPath: cluster.json
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: release-name-onos-classic-init-scripts
+            defaultMode: 484
+        - name: probe-scripts
+          configMap:
+            name: release-name-onos-classic-probe-scripts
+            defaultMode: 484
+        - name: config
+          emptyDir: {}
+---
+# Source: onos-classic/templates/statefulset.yaml
+# SPDX-FileCopyrightText: 2022 2020-present Open Networking Foundation <info@opennetworking.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# This template provides a StatefulSet for ONOS nodes.
+# The StatefulSet is used to ensure that nodes are assigned a persistent identity.
+# The StatefulSet must be used with a headless service to ensure pods can communicate with each other through
+# their persistent identities.
+# The StatefulSet supports upgrades through a simple RollingUpdate strategy.
+# An anti-affinity policy is used to ensure pods are scheduled on distinct hosts when enabled.
+# To configure the pods, an init container is used to populate a properties file on an ephemeral volume. The
+# configuration volume is shared with the primary container for configuration purposes.

@@ -1,0 +1,41 @@
+---
+# Source: onos-classic/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-onos-classic-hs
+  labels:
+    app: "onos-classic"
+    name: release-name-onos-classic
+    chart: "onos-classic-0.1.31"
+    release: "release-name"
+    heritage: "Helm"
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  ports:
+  - name: openflow
+    port: 6653
+    protocol: "TCP"
+  - name: ovsdb
+    port: 6640
+    protocol: "TCP"
+  - name: east-west
+    port: 9876
+    protocol: "TCP"
+  - name: cli
+    port: 8101
+    protocol: "TCP"
+  - name: ui
+    port: 8181
+    protocol: "TCP"
+  # ONOS and Atomix need to be able to talk to each other for ONOS to become ready
+  publishNotReadyAddresses: true
+  clusterIP: None
+  selector:
+    app: "onos-classic"
+---
+# Source: onos-classic/templates/service.yaml
+# SPDX-FileCopyrightText: 2022 2020-present Open Networking Foundation <info@opennetworking.org>
+#
+# SPDX-License-Identifier: Apache-2.0

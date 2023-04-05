@@ -1,0 +1,3 @@
+---
+# Source: onos-classic/charts/atomix/templates/nodeports.yaml
+# Sometimes, it is very hard monitoring or taking the snapshots through the proxy

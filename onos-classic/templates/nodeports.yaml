@@ -1,0 +1,13 @@
+---
+# Source: onos-classic/templates/nodeports.yaml
+# SPDX-FileCopyrightText: 2022 2020-present Open Networking Foundation <info@opennetworking.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+---
+# Source: onos-classic/templates/nodeports.yaml
+---
+
+# workaround for . not working, see
+# https://github.com/helm/helm/issues/1311
+
+# Sometimes, it is very hard monitoring or taking the snapshots through the proxy

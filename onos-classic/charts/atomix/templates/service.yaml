@@ -1,0 +1,42 @@
+---
+# Source: onos-classic/charts/atomix/templates/service.yaml
+# Headless service for stable DNS entries.
+# The critical component of this service is support for publishing DNS entries before pods are ready.
+# This is necessary for Atomix nodes to reach each other to form a quorum before transitioning to the ready state.
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-atomix-hs
+  labels:
+    app: release-name-atomix
+    chart: "atomix-0.1.9"
+    release: "release-name"
+    heritage: "Helm"
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  ports:
+  - name: release-name-atomix-node
+    port: 5679
+  publishNotReadyAddresses: true
+  clusterIP: None
+  selector:
+    app: release-name-atomix
+---
+# Source: onos-classic/charts/atomix/templates/service.yaml
+# Client service for connecting to any Atomix instance REST API.
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-atomix-api
+  labels:
+    app: release-name-atomix
+    chart: "atomix-0.1.9"
+    release: "release-name"
+    heritage: "Helm"
+spec:
+  ports:
+  - name: release-name-atomix-api
+    port: 5678
+  selector:
+    app: release-name-atomix
