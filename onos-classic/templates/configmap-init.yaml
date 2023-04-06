@@ -1,14 +1,17 @@
+# SPDX-FileCopyrightText: 2022 2020-present Open Networking Foundation <info@opennetworking.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 ---
-# Source: onos-classic/templates/configmap-init.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: release-name-onos-classic-init-scripts
+  name: {{ template "fullname" . }}-init-scripts
   labels:
-    app: "onos-classic"
-    chart: "onos-classic-0.1.31"
-    release: "release-name"
-    heritage: "Helm"
+    app: "{{ .Values.app_label }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 data:
   configure-onos.sh: |
     #!/usr/bin/env bash
@@ -64,8 +67,3 @@ data:
     until nslookup "$ATOMIX_SERVICE-api" > /dev/null 2>&1; do sleep 2; done;
 
     print_config
----
-# Source: onos-classic/templates/configmap-init.yaml
-# SPDX-FileCopyrightText: 2022 2020-present Open Networking Foundation <info@opennetworking.org>
-#
-# SPDX-License-Identifier: Apache-2.0

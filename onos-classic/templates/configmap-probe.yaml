@@ -1,22 +1,25 @@
+# SPDX-FileCopyrightText: 2022 2020-present Open Networking Foundation <info@opennetworking.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 ---
-# Source: onos-classic/templates/configmap-probe.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: release-name-onos-classic-probe-scripts
+  name: {{ template "fullname" . }}-probe-scripts
   labels:
-    app: "onos-classic"
-    chart: "onos-classic-0.1.31"
-    release: "release-name"
-    heritage: "Helm"
+    app: "{{ .Values.app_label }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
 data:
   check-onos-status: |
     #!/bin/bash
 
-    # Wait for 5s before timing out
+    # Wait for {{ .Values.probe_timeout }}s before timing out
     host=`hostname -s`
     id=onos-`hostname -s | awk -F '-' '{print $NF}'`
-    result=$(curl -m 5 -s -f http://$host:8181/onos/v1/cluster/$id --user onos:rocks)
+    result=$(curl -m {{ .Values.probe_timeout }} -s -f http://$host:8181/onos/v1/cluster/$id --user onos:rocks)
     echo $result
 
     if ! printf '%q' $result | grep -q -i "READY"; then
@@ -25,18 +28,15 @@ data:
     fi
 
     apps=()
-    apps+=("org.onosproject.openflow-base")
+    {{- range .Values.apps }}
+    apps+=("{{ . }}")
+    {{- end }}
 
     for app in ${apps[@]}; do
-      result=$(curl -m 5 -s -f http://$host:8181/onos/v1/applications/$app/health --user onos:rocks)
+      result=$(curl -m {{ .Values.probe_timeout }} -s -f http://$host:8181/onos/v1/applications/$app/health --user onos:rocks)
       echo $result
       if ! printf %q $result | grep -q -i "READY"; then
         echo "$app is not yet ready"
         exit -1
       fi
     done
----
-# Source: onos-classic/templates/configmap-probe.yaml
-# SPDX-FileCopyrightText: 2022 2020-present Open Networking Foundation <info@opennetworking.org>
-#
-# SPDX-License-Identifier: Apache-2.0

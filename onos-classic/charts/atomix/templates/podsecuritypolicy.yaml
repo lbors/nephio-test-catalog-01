@@ -1,24 +1,19 @@
-# SPDX-FileCopyrightText: 2022 2020-present Open Networking Foundation <info@opennetworking.org>
-#
-# SPDX-License-Identifier: Apache-2.0
-
 {{- if .Values.podsecuritypolicy.enabled }}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-    name: 1-onos-classic
+  name: 1-atomix
 spec:
   requiredDropCapabilities:
     - ALL
-  # Allow core volume types.
   volumes:
     - 'configMap'
     - 'emptyDir'
     - 'secret'
+    - 'persistentVolumeClaim'
   runAsUser:
     rule: 'RunAsAny'
   seLinux:
-    # This policy assumes the nodes are using AppArmor rather than SELinux.
     rule: 'RunAsAny'
   supplementalGroups:
     rule: 'MustRunAs'

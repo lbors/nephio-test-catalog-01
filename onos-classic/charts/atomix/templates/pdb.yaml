@@ -1,13 +1,18 @@
----
-# Source: onos-classic/charts/atomix/templates/pdb.yaml
+{{- if .Values.podDisruptionBudget.enabled }}
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
-  name: release-name-atomix-pdb
+  name: {{ template "fullname" . }}-pdb
 spec:
-  maxUnavailable: 1
+  {{- if .Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
   selector:
     matchLabels:
-      app: release-name-atomix
-      chart: "atomix-0.1.9"
-      release: "release-name"
+      app: {{ template "fullname" . }}
+      chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+      release: "{{ .Release.Name }}"
+{{- end }}
